@@ -1,0 +1,15 @@
+[package]
+name = "kernel"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "kernel"
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = { version = "1.0.101", default-features = false }
+fdt = "0.1.5"
+riscv = "0.16.0"
+sbi-rt = "0.0.3"
+thiserror = { version = "2.0.18", default-features = false }

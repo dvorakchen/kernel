@@ -37,7 +37,6 @@ pub extern "C" fn main(hart_id: usize, _dtb_pa: usize) {
 }
 
 use core::{arch::global_asm, panic::PanicInfo};
-use kernel::console::sbi::read_char;
 use riscv::asm::wfi;
 use sbi_rt::{Physical, hart_get_status};
 

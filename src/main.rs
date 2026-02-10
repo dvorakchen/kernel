@@ -26,12 +26,20 @@ pub extern "C" fn main(hart_id: usize, _dtb_pa: usize) {
 
     //kernel::device::parse_dtb(dtb_pa);
 
+    //let c = read_char();
+    //kernel::sbi_println!("read char: {}", c);
+
+    let line = kernel::console::sbi::read_line();
+    let physical = Physical::new(line.len(), line.as_ptr() as usize, 0);
+    let _sbiret = sbi_rt::console_write(physical);
+
     wfi();
 }
 
 use core::{arch::global_asm, panic::PanicInfo};
+use kernel::console::sbi::read_char;
 use riscv::asm::wfi;
-use sbi_rt::hart_get_status;
+use sbi_rt::{Physical, hart_get_status};
 
 #[panic_handler]
 fn panic(_info: &PanicInfo<'_>) -> ! {

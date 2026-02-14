@@ -10,11 +10,6 @@ global_asm!(include_str!("entry.asm"));
 
 #[unsafe(no_mangle)]
 pub extern "C" fn main(_hart_id: usize, _dtb_pa: usize) {
-    unsafe extern "C" {
-        static sbss: u8;
-        static ebss: u8;
-    }
-
     put_str("\x1b[2J\x1b[H");
     put_str("Hello SBI");
     put_str("\n");
@@ -28,7 +23,7 @@ pub extern "C" fn main(_hart_id: usize, _dtb_pa: usize) {
 
 use core::{arch::global_asm, panic::PanicInfo};
 use riscv::asm::wfi;
-use sbi_rt::{Physical, SbiRet, hart_get_status};
+use sbi_rt::Physical;
 
 fn put_str(s: &str) {
     let phy = Physical::new(s.len(), s.as_ptr() as usize, 0);
@@ -93,29 +88,6 @@ fn get_char() -> Option<char> {
         Some(buf[0] as char)
     } else {
         None
-    }
-}
-
-fn put_num(num: usize) {
-    let mut num = num;
-    if num == 0 {
-        sbi_rt::console_write_byte(b'0');
-        return;
-    }
-
-    // 1. 拆数字到缓冲区（逆序）
-    let mut buf = [0u8; 10]; // u32 最多 10 位
-    let mut i = 0;
-    while num > 0 {
-        buf[i] = (num % 10) as u8 + b'0';
-        num /= 10;
-        i += 1;
-    }
-
-    // 2. 逆序发送
-    while i > 0 {
-        sbi_rt::console_write_byte(buf[i - 1]);
-        i -= 1;
     }
 }
 

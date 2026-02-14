@@ -21,6 +21,8 @@ pub extern "C" fn main(_hart_id: usize, _dtb_pa: usize) {
 
     let mut buf = [0u8; 128];
     scan_line(&mut buf);
+    put_str(core::str::from_utf8(&buf).unwrap());
+
     wfi();
 }
 
@@ -34,21 +36,64 @@ fn put_str(s: &str) {
 }
 
 fn scan_line(buf: &mut [u8]) {
-    let phy: Physical<&mut [u8]> = Physical::new(buf.len(), buf.as_ptr() as usize, 0);
-    let ret = sbi_rt::console_read(phy);
+    let mut i = 0; // 当前输入位置
 
-    put_str("sbiret.error: ");
-    put_num(ret.error);
-    put_str("\n");
+    loop {
+        let c = get_char();
+        if c.is_none() {
+            continue;
+        }
 
-    put_str("sbiret.value: ");
-    put_num(ret.value);
-    put_str("\n")
+        let c = c.unwrap();
+        // 2. 处理特殊字符
+        match c {
+            '\n' | '\r' => {
+                // 换行：结束输入 + 回显换行
+                sbi_rt::console_write_byte(b'\n');
+                break;
+            }
+            '\x08' | '\x7f' => {
+                // 退格键（Backspace）或 DEL
+                if i > 0 {
+                    i -= 1;
+                    // 回显：退格 -> 擦除字符 -> 退格
+                    sbi_rt::console_write_byte(b'\x08'); // 光标左移
+                    sbi_rt::console_write_byte(b' '); // 覆盖空格
+                    sbi_rt::console_write_byte(b'\x08'); // 光标再左移
+                }
+            }
+            _ => {
+                // 普通字符：存入缓冲区 + 回显
+                if i < buf.len() - 1 {
+                    // 防溢出
+                    buf[i] = c as u8;
+                    i += 1;
+                    sbi_rt::console_write_byte(c as u8); // 回显
+                }
+                // 缓冲区满时静默丢弃（或可响铃 \x07）
+            }
+        }
+    }
+
+    // 3. 可选：截断字符串（裸机通常不需要 \0 结尾）
+    // buf[i] = b'\0';
 }
 
-fn get_char() {
+fn get_char() -> Option<char> {
+    let buf = [0u8; 1];
+
     let phy: Physical<&mut [u8]> = Physical::new(buf.len(), buf.as_ptr() as usize, 0);
     let ret = sbi_rt::console_read(phy);
+
+    if ret.error != 0 {
+        return None;
+    }
+
+    if ret.value > 0 {
+        Some(buf[0] as char)
+    } else {
+        None
+    }
 }
 
 fn put_num(num: usize) {

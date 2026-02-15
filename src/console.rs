@@ -9,7 +9,7 @@ const UART_RBR: *const u8 = (UART_BASE + 0x00) as *const u8;
 const UART_THR: *mut u8 = (UART_BASE + 0x00) as *mut u8; // Transmitter Holding Register（发送寄存器）
 const UART_LSR: *const u8 = (UART_BASE + 0x05) as *const u8; // Line Status Register（状态寄存器）
 const LSR_DATA_READY: u8 = 1 << 0;
-const LSR_TX_READY: u8 = 1 << 5; // bit 5 = 1 表示可以安全写入
+const LSR_TX_READY: u8 = 1 << 5; // bit 5 = 1 表示可以安全写入LSR_TX_READY: u8 = 1 << 5; // bit 5 = 1 表示可以安全写入
 
 pub struct Stdin;
 

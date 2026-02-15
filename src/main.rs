@@ -12,7 +12,6 @@ pub extern "C" fn main(hart_id: usize, _dtb_pa: usize) {
 
     let ret = sbi_rt::get_spec_version();
     kernel::println!("SBI Version: {}", ret);
-
     kernel::println!("你好 Kernel");
     kernel::println!("sbss address: 0x{:x}", sbss as *const () as usize);
     kernel::println!("ebss address: 0x{:x}", ebss as *const () as usize);

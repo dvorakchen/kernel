@@ -10,26 +10,31 @@ pub extern "C" fn main(hart_id: usize, _dtb_pa: usize) {
         fn ebss();
     }
 
-    kernel::sbi_println!("你好 Kernel");
-    kernel::sbi_println!("sbss address: 0x{:x}", sbss as *const () as usize);
-    kernel::sbi_println!("ebss address: 0x{:x}", ebss as *const () as usize);
-    kernel::sbi_println!("hart id: 0x{:x}", hart_id);
+    let ret = sbi_rt::get_spec_version();
+    kernel::println!("SBI Version: {}", ret);
+
+    kernel::println!("你好 Kernel");
+    kernel::println!("sbss address: 0x{:x}", sbss as *const () as usize);
+    kernel::println!("ebss address: 0x{:x}", ebss as *const () as usize);
+    kernel::println!("hart id: 0x{:x}", hart_id);
 
     let ret = hart_get_status(hart_id);
-    kernel::sbi_println!("hart status error: {}", ret.error);
-    kernel::sbi_println!("hart status value: {}", ret.value);
+    kernel::println!("hart status error: {}", ret.error);
+    kernel::println!("hart status value: {}", ret.value);
 
-    kernel::sbi_println!("try to get hart 1 status");
+    kernel::println!("try to get hart 1 status");
     let ret = hart_get_status(1);
-    kernel::sbi_println!("hart status error: {}", ret.error);
-    kernel::sbi_println!("hart status value: {}", ret.value);
+    kernel::println!("hart status error: {}", ret.error);
+    kernel::println!("hart status value: {}", ret.value);
 
     //kernel::device::parse_dtb(dtb_pa);
 
     //let c = read_char();
-    //kernel::sbi_println!("read char: {}", c);
+    //kernel::println!("read char: {}", c);
 
-    let line = kernel::console::sbi::read_line();
+    let mut buf = [0u8; 128];
+    let len = kernel::console::Stdin::read_line(&mut buf);
+    let line = &buf[..len];
     let physical = Physical::new(line.len(), line.as_ptr() as usize, 0);
     let _sbiret = sbi_rt::console_write(physical);
 

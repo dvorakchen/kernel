@@ -28,7 +28,7 @@ pub struct Arch {
 }
 
 impl Arch {
-    pub fn new(dt: &DeviceTree) -> Self {
+    pub fn new(_dt: &DeviceTree) -> Self {
         Self {
             pointer_width: PointerWith::P64,
             sbi_specification_version: sbi_rt::get_spec_version(),
@@ -37,11 +37,8 @@ impl Arch {
             machine_vendor_id: sbi_rt::get_mvendorid(),
             machine_architecture_id: sbi_rt::get_marchid(),
             machine_implementation_id: sbi_rt::get_mimpid(),
+            timebase_frequency: 0,
         }
-    }
-
-    pub fn with_device_tree(self, dt: &DeviceTree) -> Self {
-        self
     }
 }
 

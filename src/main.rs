@@ -71,6 +71,7 @@ use core::{arch::global_asm, panic::PanicInfo};
 use kernel::{Kernel, device};
 use riscv::{
     asm::wfi,
+    interrupt::Trap,
     register::{sie::set_stimer, time},
 };
 use sbi_rt::{Physical, Timer, hart_get_status, set_timer};

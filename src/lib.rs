@@ -1,7 +1,5 @@
 #![no_std]
 
-use fdt::Fdt;
-
 use crate::{arch::Arch, device::DeviceTree};
 
 pub mod arch;
@@ -16,7 +14,7 @@ pub struct Kernel {
 
 impl Kernel {
     pub fn new(dt: DeviceTree) -> Self {
-        let arch = Arch::default().with_device_tree(&dt);
+        let arch = Arch::new(&dt);
 
         Self { arch }
     }

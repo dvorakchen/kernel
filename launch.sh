@@ -2,5 +2,5 @@ cargo b
 qemu-system-riscv64 -machine virt \
   -nographic \
   -bios default \
-  -kernel /home/dvorak/Projects/kernel/target/riscv64gc-unknown-none-elf/debug/kernel \
-  -smp 4
+  -smp 4 \
+  -kernel /home/dvorak/Projects/kernel/target/riscv64gc-unknown-none-elf/debug/kernel

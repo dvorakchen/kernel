@@ -2,17 +2,19 @@
 
 use riscv::asm::wfi;
 
-use crate::{arch::Arch, device::DeviceTree};
+use crate::{arch::Arch, device::DeviceTree, mm::MemoryManager};
 
 pub mod arch;
 pub mod console;
 pub mod device;
+mod mm;
 pub mod system;
 pub mod trap;
 
 pub struct Kernel {
     pub arch: Arch,
     pub device_tree: DeviceTree,
+    pub(crate) mm: mm::MemoryManager,
 }
 
 impl Kernel {
@@ -23,6 +25,7 @@ impl Kernel {
         Self {
             arch,
             device_tree: dt,
+            mm: MemoryManager::default(),
         }
     }
 

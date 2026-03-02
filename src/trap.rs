@@ -12,10 +12,6 @@ use riscv::register::{
 
 global_asm!(include_str!("trap/trap64.s"));
 
-unsafe extern "C" {
-    fn trap_entry();
-}
-
 #[unsafe(no_mangle)]
 pub fn handle_trap(sepc: usize, scause: usize, stval: usize, sstatus: usize) {
     crate::println!("sstatus: {:#x}", sstatus);
@@ -30,10 +26,10 @@ pub fn handle_trap(sepc: usize, scause: usize, stval: usize, sstatus: usize) {
 
 /// init 初始化 trap
 pub fn init() {
-    let st = Stvec::new(trap_entry as *const () as usize, TrapMode::Direct);
+    let st = Stvec::new(crate::trap_entry as *const () as usize, TrapMode::Direct);
     unsafe { stvec::write(st) };
     crate::println!(
         "[TRAP] Handler installed at {:#x}",
-        trap_entry as *const () as usize
+        crate::trap_entry as *const () as usize
     );
 }

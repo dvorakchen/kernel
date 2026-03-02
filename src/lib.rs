@@ -12,6 +12,11 @@ mod system;
 mod trap;
 mod utils;
 
+unsafe extern "C" {
+    fn trap_entry();
+    fn ekernel();
+}
+
 pub struct Kernel {
     pub arch: Arch,
     pub device_tree: DeviceTree,

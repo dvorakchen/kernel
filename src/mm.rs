@@ -1,6 +1,9 @@
 pub(crate) mod frame;
 pub(crate) mod heap;
 
+/// 内存一页的大小
+pub(crate) const PAGE_SIZE: usize = 4096;
+
 /// 内存管理
 ///
 /// 包括管理 内核堆、物理页帧、虚拟内存
@@ -14,18 +17,41 @@ impl MemoryManager {
     pub fn new(device: crate::device::Memory) -> Self {
         let heap = crate::mm::heap::Heap::default();
 
-        let mut frame = crate::mm::frame::Frame::default();
-        // 这里应该先分配物理内存到 frame 里面
-        frame.add(0, 1);
-        crate::println!("[MEMORY MANAGER] frame allco: {:?}", frame.alloc());
-        crate::println!("[MEMORY MANAGER] frame allco: {:?}", frame.alloc());
-        frame.dealloc(0);
-        crate::println!("[MEMORY MANAGER] frame allco: {:?}", frame.alloc());
-        Self {
+        let frame = crate::mm::frame::Frame::default();
+
+        let mut mm = Self {
             heap,
             device,
             frame,
-        }
+        };
+
+        mm.device_mem_2_heap();
+
+        mm
+    }
+
+    /// 将内存分配到帧分配器里
+    fn device_mem_2_heap(&mut self) {
+        let free_memory_start = crate::ekernel as *const () as usize;
+        crate::println!(
+            "[MEMORY MANAGER] free memory start address: {:#x}",
+            free_memory_start
+        );
+        let free_memory_start = crate::utils::align_top(free_memory_start, PAGE_SIZE);
+        crate::println!(
+            "[MEMORY MANAGER] free memory start address aligned: {:#x}",
+            free_memory_start
+        );
+
+        let size = self.device.size / PAGE_SIZE;
+        crate::println!(
+            "[MEMORY MANAGER] Memory start address: {:#x}",
+            self.device.start
+        );
+        crate::println!("[MEMORY MANAGER] Memory size: {:#x}", self.device.size);
+        crate::println!("[MEMORY MANAGER] Memory page size: {:#x}", PAGE_SIZE);
+        crate::println!("[MEMORY MANAGER] Memory page count: {:#x}", size);
+        self.frame.add(0, size);
     }
 
     /// 启用虚拟页表

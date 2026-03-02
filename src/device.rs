@@ -1,5 +1,7 @@
 use fdt::Fdt;
 
+use crate::{mm::PAGE_SIZE, utils};
+
 pub struct DeviceTree {
     dt: Fdt<'static>,
     pub dtb_pa: usize,
@@ -58,17 +60,10 @@ impl DeviceTree {
 
         let start = m.starting_address as usize;
         let size = m.size.expect("[DEVICE TREE] memory must has size");
+        crate::println!("[DEVICE TREE] Device Memory start address: {:#x}", start);
+        crate::println!("[DEVICE TREE] Device Memory size: {:#x}", size);
 
-        // 4KB 对齐
-        let start = (start + 4095) & !0xFFF;
-        let size = size & !0xFFF;
-        crate::println!(
-            "[DEVICE TREE] valid memory start: {:#x}, size: {:#x}",
-            start,
-            size
-        );
-
-        assert!(size > 4096, "[DEVICE TREE] memory not a valid page");
+        assert!(size > PAGE_SIZE, "[DEVICE TREE] memory not a valid page");
 
         Memory { start, size }
     }

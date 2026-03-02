@@ -56,17 +56,29 @@ impl DeviceTree {
             .next()
             .expect("[DEVICE TREE] must has memory");
 
-        Memory {
-            start: m.starting_address as usize,
-            size: m.size.expect("[DEVICE TREE] memory must has size"),
-        }
+        let start = m.starting_address as usize;
+        let size = m.size.expect("[DEVICE TREE] memory must has size");
+
+        // 4KB 对齐
+        let start = (start + 4095) & !0xFFF;
+        let size = size & !0xFFF;
+        crate::println!(
+            "[DEVICE TREE] valid memory start: {:#x}, size: {:#x}",
+            start,
+            size
+        );
+
+        assert!(size > 4096, "[DEVICE TREE] memory not a valid page");
+
+        Memory { start, size }
     }
 }
 
 /// 设备树上的内存信息
+#[derive(Clone, Copy)]
 pub struct Memory {
     /// 内存开始地址
     pub start: usize,
-    /// 内存大小
+    /// 内存结束地址
     pub size: usize,
 }

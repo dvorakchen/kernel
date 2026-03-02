@@ -24,8 +24,8 @@ impl Kernel {
 
         Self {
             arch,
+            mm: MemoryManager::new(dt.memory),
             device_tree: dt,
-            mm: MemoryManager::default(),
         }
     }
 

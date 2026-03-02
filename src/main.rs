@@ -5,6 +5,7 @@ global_asm!(include_str!("entry.asm"));
 
 #[unsafe(no_mangle)]
 pub extern "C" fn main(hart_id: usize, dtb_pa: usize) {
+    kernel::println!("dtb_pa: {:#x}", dtb_pa);
     let mut kernel = Kernel::new(dtb_pa);
     kernel.run();
 }

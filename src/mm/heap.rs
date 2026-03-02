@@ -11,7 +11,7 @@ static HEAP_ALLOCATOR: LockedHeapWithRescue<32> = LockedHeapWithRescue::new(|hea
 
 /// 内核堆分配器
 ///
-/// 现有了对分配器后才能使用 `String`, `Vec` 等
+/// 现有了对分配器后才能使用 `String`, `Vec`，'Box' 等
 pub(crate) struct Heap;
 
 impl Default for Heap {

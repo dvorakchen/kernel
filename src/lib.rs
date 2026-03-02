@@ -4,12 +4,13 @@ use riscv::asm::wfi;
 
 use crate::{arch::Arch, device::DeviceTree, mm::MemoryManager};
 
-pub mod arch;
+mod arch;
 pub mod console;
 pub mod device;
 mod mm;
-pub mod system;
-pub mod trap;
+mod system;
+mod trap;
+mod utils;
 
 pub struct Kernel {
     pub arch: Arch,

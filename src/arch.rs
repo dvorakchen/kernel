@@ -5,7 +5,6 @@
 //!
 
 mod isa;
-pub use isa::ISAExtensions;
 
 use core::fmt::Display;
 

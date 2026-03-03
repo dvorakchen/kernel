@@ -4,9 +4,9 @@
 global_asm!(include_str!("entry.asm"));
 
 #[unsafe(no_mangle)]
-pub extern "C" fn main(hart_id: usize, dtb_pa: usize) {
+pub extern "C" fn main(_hart_id: usize, dtb_pa: usize) {
     kernel::println!("dtb_pa: {:#x}", dtb_pa);
-    let mut kernel = Kernel::new(dtb_pa);
+    let kernel = Kernel::new(dtb_pa);
     kernel.run();
 }
 
@@ -27,13 +27,9 @@ fn set_time_interrupt() {
 }
 
 use core::{arch::global_asm, panic::PanicInfo};
-use kernel::{Kernel, device};
-use riscv::{
-    asm::wfi,
-    interrupt::Trap,
-    register::{sie::set_stimer, time},
-};
-use sbi_rt::{Physical, Timer, hart_get_status, set_timer};
+use kernel::Kernel;
+use riscv::register::time;
+use sbi_rt::{Timer, set_timer};
 
 #[panic_handler]
 fn panic(info: &PanicInfo<'_>) -> ! {

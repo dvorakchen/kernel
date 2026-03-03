@@ -2,6 +2,8 @@
 //!
 //! > riscv-privileged, Charpter 12.4
 //!
+//! SXLEN=64
+//!
 //! ## 异常
 //! 从没有 X 权限的页中获取指令执行会发起一个 `fetch page-fault` 异常
 //! 从没有 R 权限的页中加载数据会发起一个 `load page-fault` 异常
@@ -19,7 +21,7 @@ bitflags! {
     /// 如果 R,W,X 位都为 0，表示这个 PTE 指向下一级页表，
     /// 否则是叶节点 PTE
     #[derive(Clone, Copy, Debug)]
-    pub(crate) struct Flags: u8 {
+    pub(crate) struct PTEFlags: u8 {
         /// V 位，表示这个 PTE 是否有效
         /// 如果是 0，表示无效，PTE 的其他位都无效
         const V = 1 << 0;
@@ -39,5 +41,15 @@ bitflags! {
         /// D 位，表示在最后一次 D 位置 0 后，
         /// 该虚拟页表是否被写过
         const D = 1 << 7;
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct PTE(u64);
+
+impl PTE {
+    pub fn is_valid(&self) -> bool {
+        (self.0 as u8 & PTEFlags::V.bits()) == PTEFlags::V.bits()
     }
 }

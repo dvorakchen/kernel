@@ -1,6 +1,6 @@
 use fdt::Fdt;
 
-use crate::{mm::PAGE_SIZE, utils};
+use crate::mm::PAGE_SIZE;
 
 pub struct DeviceTree {
     dt: Fdt<'static>,

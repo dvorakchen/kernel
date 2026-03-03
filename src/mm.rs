@@ -1,5 +1,37 @@
+//! # 内存管理
+//!
+//! Author: Dvorak
+//! Create Date: 2026-03-02
+//! Last Update Date: 2026-03-03
+//!
+//! - 内核堆管理
+//! - 物理页帧管理
+//! - 虚拟内存管理
+//!
+//! ## 内核堆管理
+//!
+//! 使用 Rust 语言实现的裸机代码没有**全局分配器**，无法使用想 `Vec`、`Box` 等数据结构
+//! 所以必须给它一个全局分配器的实现。
+//! 这里用的是 `buddy_system_allocator`，提供了全局分配器和页帧分配器，
+//! 这里的页帧分配器依赖全局分配器，必须先有了全局分配器了才能使用页帧分配器
+//!
+//! 初始内核堆在内核的 `bss` 段内，初始堆大小为 4KB，刚好是一页大小
+//! 初始化内核堆阶段没有开启页表，在开启页表后，内核的地址做恒等映射
+//!
+//! ## 物理页帧管理
+//!
+//! 把所有可用的物理页按照 4KB 对齐，分为许多 4KB 大小的帧
+//! 当内核需要一个物理页时候，给它一个没有使用的物理页帧的开始地址
+//!
+//! 这里的物理页帧分配器使用的是 `buddy_system_allocator` 的 `LockedFrameAllocator`
+//!
+//! ## 虚拟内存管理
+//!
+//! 开启页表
+
 pub(crate) mod frame;
 pub(crate) mod heap;
+pub(crate) mod vm;
 
 /// 内存一页的大小
 pub(crate) const PAGE_SIZE: usize = 4096;
@@ -16,7 +48,6 @@ pub(crate) struct MemoryManager {
 impl MemoryManager {
     pub fn new(device: crate::device::Memory) -> Self {
         let heap = crate::mm::heap::Heap::default();
-
         let frame = crate::mm::frame::Frame::default();
 
         let mut mm = Self {

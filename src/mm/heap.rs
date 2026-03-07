@@ -12,9 +12,9 @@ static HEAP_ALLOCATOR: LockedHeapWithRescue<32> = LockedHeapWithRescue::new(|_he
 /// 内核堆分配器
 ///
 /// 现有了对分配器后才能使用 `String`, `Vec`，'Box' 等
-pub(crate) struct Heap;
+pub(crate) struct HeapAllocator;
 
-impl Default for Heap {
+impl Default for HeapAllocator {
     fn default() -> Self {
         let start = INIT_KERNEL_HEAP_SPACE.as_ptr() as usize;
 
@@ -28,6 +28,6 @@ impl Default for Heap {
             HEAP_ALLOCATOR.lock().init(start, INIT_KERNEL_HEAP_SIZE);
         }
 
-        Heap
+        HeapAllocator
     }
 }

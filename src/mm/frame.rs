@@ -53,12 +53,13 @@ impl FrameAllocator {
     pub(crate) fn alloc(&mut self) -> Option<Frame> {
         self.allocator.lock().alloc(1).map(|frame_number| {
             crate::println!("[FRAME] alloc frame number: {:#x}", frame_number);
-            self.start_addr + frame_number * FRAME_SIZE
+            (self.start_addr + frame_number * FRAME_SIZE).into()
         })
     }
 
     /// 回收一个物理页帧
     pub(crate) fn dealloc(&mut self, frame: Frame) {
+        let frame: usize = frame.into();
         let frame_number = (frame - self.start_addr) / FRAME_SIZE;
         crate::println!("[FRAME] dealloc frame number: {:#x}", frame_number);
         self.allocator.lock().dealloc(frame_number, 1);
@@ -68,4 +69,18 @@ impl FrameAllocator {
 /// 这是一个物理帧
 ///
 /// 代表一个物理页的开始，一个物理页帧 4KB 大小
-pub(crate) type Frame = usize;
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+pub(crate) struct Frame(usize);
+
+impl From<usize> for Frame {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+impl From<Frame> for usize {
+    fn from(value: Frame) -> Self {
+        value.0
+    }
+}

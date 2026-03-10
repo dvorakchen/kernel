@@ -29,6 +29,8 @@
 //!
 //! 开启页表
 
+use crate::mm;
+
 pub(crate) mod frame;
 pub(crate) mod heap;
 pub(crate) mod vm;
@@ -43,32 +45,42 @@ pub(crate) struct MemoryManager {
     device: crate::device::Memory,
     pub heap: crate::mm::heap::HeapAllocator,
     pub frame: crate::mm::frame::FrameAllocator,
+    vm: crate::mm::vm::VP,
 }
 
 impl MemoryManager {
     pub fn new(device: crate::device::Memory) -> Self {
         let heap = crate::mm::heap::HeapAllocator::default();
-        let frame = crate::mm::frame::FrameAllocator::default();
+        let mut frame = crate::mm::frame::FrameAllocator::default();
 
-        let mut mm = Self {
+        Self::device_mem_2_frame(&device, &mut frame);
+
+        let vm = crate::mm::vm::VP::new(frame.alloc().expect("Not more frame").into());
+
+        let mm = Self {
             heap,
             device,
             frame,
+            vm,
         };
-
-        mm.device_mem_2_frame();
 
         mm
     }
 
     /// 将空闲内存分配到帧分配器里
-    fn device_mem_2_frame(&mut self) {
+    ///
+    /// 这个函数会在帧分配器初始化后马上使用，
+    /// 此时除了内核以外的内存都是空闲内存
+    fn device_mem_2_frame(
+        device: &crate::device::Memory,
+        frame_alloc: &mut mm::frame::FrameAllocator,
+    ) {
         let start = crate::utils::align_top(crate::ekernel as *const () as usize, PAGE_SIZE);
         crate::println!(
             "[MEMORY MANAGER] free memory start address aligned: {:#x}",
             start
         );
-        let size = self.device.size - (start - self.device.start);
+        let size = device.size - (start - device.start);
 
         let end = crate::utils::align_bottom(start + size, PAGE_SIZE);
         crate::println!(
@@ -78,17 +90,14 @@ impl MemoryManager {
         crate::println!("[MEMORY MANAGER] free memory size: {:#x}", size);
 
         let page_count = size / PAGE_SIZE;
-        crate::println!(
-            "[MEMORY MANAGER] Memory start address: {:#x}",
-            self.device.start
-        );
+        crate::println!("[MEMORY MANAGER] Memory start address: {:#x}", device.start);
         crate::println!("[MEMORY MANAGER] Memory end address: {:#x}", end);
-        crate::println!("[MEMORY MANAGER] Memory size: {:#x}", self.device.size);
+        crate::println!("[MEMORY MANAGER] Memory size: {:#x}", device.size);
         crate::println!("[MEMORY MANAGER] Memory page size: {:#x}", PAGE_SIZE);
         crate::println!("[MEMORY MANAGER] Memory page count: {:#x}", page_count);
 
-        self.frame.set_start(start);
-        self.frame.add(0, size / frame::FRAME_SIZE);
+        frame_alloc.set_start(start);
+        frame_alloc.add(0, size / frame::FRAME_SIZE);
     }
 
     /// 启用虚拟页表

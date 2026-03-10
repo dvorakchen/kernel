@@ -69,6 +69,7 @@ impl FrameAllocator {
 /// 这是一个物理帧
 ///
 /// 代表一个物理页的开始，一个物理页帧 4KB 大小
+/// 是一个直接可用的物理地址
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub(crate) struct Frame(usize);

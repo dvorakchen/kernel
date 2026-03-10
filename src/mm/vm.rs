@@ -58,6 +58,13 @@
 //!
 //! pa = (pa.ppn * PAGESIZE) + pa.pgoff
 //! 最终得到 pa 物理地址！
+//!
+//! ## 名词解释
+//!
+//! - ppn   物理页号 Pysical Page Number,
+//!         在 PET，va 中的 ppn 是截掉了低 12 位的，
+//!         所以在和 offset 组合成物理地址的时候要先左移动 12 位，在加上 offset
+//!         pv = (ppn << 12) + offset
 
 use bitflags::bitflags;
 
@@ -91,6 +98,11 @@ bitflags! {
         const D = 1 << 7;
     }
 }
+
+/// 页表项的大小，byte
+///
+/// 在 Sv39 中是 8
+const PTE_SIZE: usize = 8;
 
 /// 页表项
 #[repr(transparent)]
@@ -145,6 +157,22 @@ impl From<VirtualAddr> for usize {
     }
 }
 
+/// 物理地址
+#[repr(transparent)]
+pub(crate) struct PysicalAddr(usize);
+
+impl From<usize> for PysicalAddr {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+impl From<PysicalAddr> for usize {
+    fn from(value: PysicalAddr) -> Self {
+        value.0
+    }
+}
+
 impl VirtualAddr {
     pub(crate) fn vpn(&self, index: usize) -> usize {
         if index > 2 {
@@ -157,31 +185,55 @@ impl VirtualAddr {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub(crate) enum VMError {
+pub(crate) enum VPError {
     #[error("PTE invalid: {0}")]
-    PTEInvalid(usize),
+    InvalidPTE(usize),
+    #[error("va map pa invalid: {0} -> {1}")]
+    InvalidMap(usize, usize),
 }
 
-pub(crate) struct VM {
+pub(crate) struct VP {
     root_ppn: usize,
 }
 
-impl VM {
-    pub fn map(&mut self, va: VirtualAddr, pa: usize, flag: PTEFlags) -> Result<(), VMError> {
+impl VP {
+    /// new 一个新的虚拟页表
+    ///
+    /// ## Argument:
+    /// - root_ppn: 根页表的物理地址
+    pub fn new(root_ppn: usize) -> Self {
+        Self { root_ppn }
+    }
+}
+
+impl VP {
+    pub fn map(
+        &mut self,
+        va: VirtualAddr,
+        pa: PysicalAddr,
+        flag: PTEFlags,
+        frame_alloc: &mut super::frame::FrameAllocator,
+    ) -> Result<(), VPError> {
+        if va.0 & 0xFFF != pa.0 & 0xFFF {
+            return Err(VPError::InvalidMap(va.0, pa.0));
+        }
         // satp.ppn * 4096
         let mut a = self.root_ppn * 4096;
 
-        for i in (0..3).rev() {
-            let pte: PTE = (a + va.vpn(i) * 8).into();
+        for i in (0..3).rev()
+        /* 2, 1, 0 */
+        {
+            let pte: PTE = (a + va.vpn(i) * PTE_SIZE).into();
 
             if !pte.is_valid() {
-                return Err(VMError::PTEInvalid(pte.into()));
+                return Err(VPError::InvalidPTE(pte.into()));
             }
             let ppn = pte.ppn();
             a = ppn * 4096;
         }
 
         // TODO: to pa
+        a |= (va.0 & 0xFFF);
         Ok(())
     }
 

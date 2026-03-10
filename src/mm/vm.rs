@@ -232,7 +232,6 @@ impl VP {
             a = ppn * 4096;
         }
 
-        // TODO: to pa
         a |= va.0 & 0xFFF;
         Ok(())
     }

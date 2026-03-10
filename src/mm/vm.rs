@@ -211,8 +211,8 @@ impl VP {
         &mut self,
         va: VirtualAddr,
         pa: PysicalAddr,
-        flag: PTEFlags,
-        frame_alloc: &mut super::frame::FrameAllocator,
+        _flag: PTEFlags,
+        _frame_alloc: &mut super::frame::FrameAllocator,
     ) -> Result<(), VPError> {
         if va.0 & 0xFFF != pa.0 & 0xFFF {
             return Err(VPError::InvalidMap(va.0, pa.0));
@@ -233,7 +233,7 @@ impl VP {
         }
 
         // TODO: to pa
-        a |= (va.0 & 0xFFF);
+        a |= va.0 & 0xFFF;
         Ok(())
     }
 

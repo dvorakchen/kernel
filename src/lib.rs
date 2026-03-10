@@ -35,7 +35,7 @@ impl Kernel {
         }
     }
 
-    pub fn run(mut self) -> ! {
+    pub fn run(self) -> ! {
         loop {
             wfi();
         }

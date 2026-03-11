@@ -1,3 +1,5 @@
+use core::slice;
+
 use buddy_system_allocator::*;
 
 /// 一个物理页帧的大小，4096 byte
@@ -50,10 +52,20 @@ impl FrameAllocator {
     }
 
     /// 获取一个空闲的物理页帧
+    ///
+    /// 会清除该物理页帧的内容
     pub(crate) fn alloc(&mut self) -> Option<Frame> {
         self.allocator.lock().alloc(1).map(|frame_number| {
             crate::println!("[FRAME] alloc frame number: {:#x}", frame_number);
-            (self.start_addr + frame_number * FRAME_SIZE).into()
+            let frame: Frame = (self.start_addr + frame_number * FRAME_SIZE).into();
+
+            let space = unsafe {
+                let addr: usize = frame.clone().into();
+                slice::from_raw_parts_mut(addr as *mut u8, FRAME_SIZE)
+            };
+            space.fill(0);
+
+            frame
         })
     }
 

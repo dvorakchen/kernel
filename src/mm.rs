@@ -45,7 +45,7 @@ pub(crate) struct MemoryManager {
     device: crate::device::Memory,
     pub heap: crate::mm::heap::HeapAllocator,
     pub frame: crate::mm::frame::FrameAllocator,
-    vm: crate::mm::vm::VP,
+    vm: crate::mm::vm::VirtualPage,
 }
 
 impl MemoryManager {
@@ -55,7 +55,7 @@ impl MemoryManager {
 
         Self::device_mem_2_frame(&device, &mut frame);
 
-        let vm = crate::mm::vm::VP::new(frame.alloc().expect("Not more frame").into());
+        let vm = crate::mm::vm::VirtualPage::new(frame.alloc().expect("Not more frame").into());
 
         let mm = Self {
             heap,

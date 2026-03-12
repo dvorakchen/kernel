@@ -68,6 +68,8 @@
 
 use bitflags::bitflags;
 
+use crate::utils;
+
 pub(crate) struct VirtualMemory {}
 
 bitflags! {
@@ -106,16 +108,13 @@ impl PTEFlags {
     }
 }
 
+/// PTE 大小，8 byte
+const PTE_SIZE: usize = 8;
+
 /// 页表项
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct PTE(usize);
-
-impl PTE {
-    pub(crate) fn new(ppn: usize, flag: PTEFlags) -> Self {
-        (ppn << 10 | flag.bits() as usize).into()
-    }
-}
 
 impl From<usize> for PTE {
     fn from(value: usize) -> Self {
@@ -130,6 +129,22 @@ impl From<PTE> for usize {
 }
 
 impl PTE {
+    pub(crate) fn new(ppn: usize, flag: PTEFlags) -> Self {
+        (ppn << 10 | flag.bits() as usize).into()
+    }
+
+    pub(crate) fn set(&mut self, pte: usize) {
+        self.0 = pte;
+    }
+
+    pub(crate) fn ppn(&self) -> usize {
+        (self.0 >> 10) & ((1 << 44) - 1)
+    }
+
+    pub fn v(&self) -> bool {
+        self.0 & 0x01 == 1
+    }
+
     pub fn is_valid(&self) -> bool {
         let flags = self.0 as u8;
         // According to the RISC-V spec, a PTE is invalid if V=0, or if R=0 and W=1.
@@ -140,30 +155,33 @@ impl PTE {
         v_is_set && !rw_is_invalid
     }
 
-    pub(crate) fn get_next_page_table(&self) -> PageTable {
-        let ppn = (self.0 >> 10) & 0xFFF_FFFF_FFFF;
-        (ppn << 12).into()
+    pub(crate) fn next_page_table(&self) -> PageTable {
+        (self.ppn() << 12).into()
     }
 }
 
 /// 页表
 #[derive(Clone, Copy, Debug)]
 #[repr(transparent)]
-pub(crate) struct PageTable([PTE; 512]);
+pub(crate) struct PageTable(usize);
 
 impl From<usize> for PageTable {
     fn from(value: usize) -> Self {
-        unsafe { *(value as *const PageTable) }
+        Self(value)
     }
 }
 
 impl PageTable {
     pub(crate) fn nth(&self, index: usize) -> PTE {
-        self.0[index]
+        let t = (self.0 + index * PTE_SIZE) as *const PTE;
+        unsafe { *t }
     }
 
     pub(crate) fn set_PTE(&mut self, index: usize, pte: PTE) {
-        self.0[index] = pte;
+        let t = (self.0 + index * PTE_SIZE) as *mut PTE;
+        unsafe {
+            *t = pte;
+        }
     }
 }
 
@@ -223,8 +241,18 @@ pub(crate) enum VirtualPageError {
     UsedMap(usize, usize),
 }
 
+pub(crate) enum PageType {
+    /// 4kb 页
+    Small,
+    /// 2mb
+    Big,
+    /// 1g
+    Super,
+}
+
 pub(crate) struct VirtualPage {
     root_ppn: usize,
+    page_type: PageType,
 }
 
 impl VirtualPage {
@@ -232,16 +260,91 @@ impl VirtualPage {
     ///
     /// ## Argument:
     /// - root_ppn: 根页表的物理地址
-    pub fn new(root_ppn: usize) -> Self {
-        Self { root_ppn }
+    pub fn new(root_ppn: usize, page_type: PageType) -> Self {
+        Self {
+            root_ppn,
+            page_type,
+        }
     }
 }
 
 impl VirtualPage {
+    /// 映射内核空间
+    ///
+    /// 恒等映射，大页
+    ///
+    /// # Arguments:
+    /// - pa_start: 内核空间开始物理地址
+    /// - pa_end: 内核空间结束物理地址
+    ///
+    /// 调用者自行保证 2m 对齐
+    pub(crate) fn map_kernel(
+        &mut self,
+        pa_start: PysicalAddr,
+        pa_end: PysicalAddr,
+        frame_alloc: &mut super::frame::FrameAllocator,
+    ) -> Result<(), VirtualPageError> {
+        const PAGE_SIZE_2M: usize = 0x20_0000;
+        let start_addr = pa_start.0;
+        let end_addr = pa_end.0;
+
+        let flags = PTEFlags::V
+            | PTEFlags::R
+            | PTEFlags::W
+            | PTEFlags::X
+            | PTEFlags::G
+            | PTEFlags::A
+            | PTEFlags::D;
+
+        let mut cur = start_addr;
+        while cur < end_addr {
+            let va: VirtualAddr = cur.into();
+            let pa: PysicalAddr = cur.into();
+
+            self.map_2m_page(va, pa, flags, frame_alloc)?;
+
+            cur += PAGE_SIZE_2M;
+        }
+
+        Ok(())
+    }
+
+    fn map_2m_page(
+        &self,
+        va: VirtualAddr,
+        pa: PysicalAddr,
+        flags: PTEFlags,
+        frame_alloc: &mut super::frame::FrameAllocator,
+    ) -> Result<(), VirtualPageError> {
+        let vpn2 = va.vpn(2);
+        let vpn1 = va.vpn(1);
+
+        let mut root_pt: PageTable = (self.root_ppn << 12).into();
+        let mut l2_pte = { root_pt.nth(vpn2) };
+
+        if !l2_pte.v() {
+            let frame = frame_alloc
+                .alloc()
+                .ok_or(VirtualPageError::NotMoreFreeFrame)?;
+            let l1_ppn = frame.ppn();
+            l2_pte.set((l1_ppn << 10) | PTEFlags::V.bits() as usize);
+            root_pt.set_PTE(vpn2, l2_pte);
+        }
+
+        let mut l1_table = l2_pte.next_page_table();
+        let mut l1_pte = l1_table.nth(vpn1);
+        // 在 2m 大页中，ppn[0] 必须为 0
+        // 先右移21位，再左移19位，以让低10位为0
+        l1_pte.set((pa.0 >> 21 << 19) | flags.bits() as usize);
+        l1_table.set_PTE(vpn1, l1_pte);
+
+        Ok(())
+    }
+
     /// 将一个 虚拟地址 映射到一个 物理地址
     ///
     /// 实际上就是在页表里添加页表项
-    pub fn map(
+    pub fn map_small(
         &mut self,
         va: VirtualAddr,
         pa: PysicalAddr,
@@ -279,7 +382,7 @@ impl VirtualPage {
             }
 
             if i != 0 {
-                page_table = pte.get_next_page_table();
+                page_table = pte.next_page_table();
             }
         }
 

@@ -13,8 +13,10 @@ mod trap;
 mod utils;
 
 unsafe extern "C" {
-    fn trap_entry();
+    fn skernel();
     fn ekernel();
+    fn user_trap_entry();
+    fn kernel_trap_entry();
 }
 
 pub struct Kernel {
@@ -36,6 +38,7 @@ impl Kernel {
     }
 
     pub fn run(self) -> ! {
+        crate::trap::Trap::using_user_trap_handler();
         loop {
             wfi();
         }

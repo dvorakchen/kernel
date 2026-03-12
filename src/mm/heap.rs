@@ -1,6 +1,6 @@
 use buddy_system_allocator::*;
 
-const INIT_KERNEL_HEAP_SIZE: usize = 4096;
+const INIT_KERNEL_HEAP_SIZE: usize = 1 * 1024 * 1024;
 
 static INIT_KERNEL_HEAP_SPACE: [u8; INIT_KERNEL_HEAP_SIZE] = [0; INIT_KERNEL_HEAP_SIZE];
 

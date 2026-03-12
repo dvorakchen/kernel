@@ -86,6 +86,12 @@ impl FrameAllocator {
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub(crate) struct Frame(usize);
 
+impl Frame {
+    pub(crate) fn ppn(&self) -> usize {
+        self.0 >> 12
+    }
+}
+
 impl From<usize> for Frame {
     fn from(value: usize) -> Self {
         Self(value)

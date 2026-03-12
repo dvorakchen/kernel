@@ -11,7 +11,7 @@
 .global trap_entry
 .align 6
 
-trap_entry:
+user_trap_entry:
 
   # 栈切换: 用户站 -> 内核栈
   # 此时：
@@ -68,7 +68,7 @@ trap_entry:
 
   # 调用 Rust 处理函数
   #   fn handle_trap(sepc: usize, scause: usize, stval: usize, sstatus: usize)
-  call handle_trap
+  call user_handle_trap
 
   ld x1,  1*8(sp)
   ld x3,  3*8(sp)

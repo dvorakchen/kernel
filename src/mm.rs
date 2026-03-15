@@ -56,9 +56,8 @@ impl MemoryManager {
         Self::device_mem_2_frame(&device, &mut frame);
 
         // 内核页表
-        let mut vm = Self::kernel_virtual_page();
+        let mut vm = Self::kernel_virtual_page(&mut frame);
 
-        // TODO: bug here
         vm.map_kernel(
             (crate::skernel as *const () as usize).into(),
             (crate::ekernel as *const () as usize).into(),
@@ -79,14 +78,18 @@ impl MemoryManager {
     /// 初始化内核页表
     ///
     /// 内核使用恒等映射，映射为 2MB 大页
-    fn kernel_virtual_page() -> crate::mm::vm::VirtualPage {
-        let skernel = crate::skernel as *const () as usize;
-        let ekernel = crate::ekernel as *const () as usize;
+    fn kernel_virtual_page(
+        frame_alloc: &mut mm::frame::FrameAllocator,
+    ) -> crate::mm::vm::VirtualPage {
+        let pt = frame_alloc
+            .alloc()
+            .expect("[MEMORY MANAGER] frame alloc failed");
+        crate::println!(
+            "[MEMORY MANAGER] alloc frame {:#x} for  kernel",
+            Into::<usize>::into(pt)
+        );
 
-        crate::println!("skernel: {:#x}", skernel);
-        crate::println!("ekernel: {:#x}", ekernel);
-
-        crate::mm::vm::VirtualPage::new(skernel, vm::PageType::Big)
+        crate::mm::vm::VirtualPage::new(pt.into(), vm::PageType::Big)
     }
 
     /// 将空闲内存分配到帧分配器里

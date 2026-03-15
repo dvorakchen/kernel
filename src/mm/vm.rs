@@ -172,16 +172,9 @@ impl From<usize> for PageTable {
 }
 
 impl PageTable {
-    pub(crate) fn nth(&self, index: usize) -> PTE {
-        let t = (self.0 + index * PTE_SIZE) as *const PTE;
-        unsafe { *t }
-    }
-
-    pub(crate) fn set_PTE(&mut self, index: usize, pte: PTE) {
+    pub(crate) fn nth_mut(&self, index: usize) -> &mut PTE {
         let t = (self.0 + index * PTE_SIZE) as *mut PTE;
-        unsafe {
-            *t = pte;
-        }
+        unsafe { &mut *t }
     }
 }
 
@@ -250,8 +243,10 @@ pub(crate) enum PageType {
     Super,
 }
 
+/// 虚拟页表
 pub(crate) struct VirtualPage {
-    root_ppn: usize,
+    /// 根页表的物理地址，也就是 L2 页表
+    root_pt_addr: usize,
     page_type: PageType,
 }
 
@@ -259,10 +254,10 @@ impl VirtualPage {
     /// new 一个新的虚拟页表
     ///
     /// ## Argument:
-    /// - root_ppn: 根页表的物理地址
-    pub fn new(root_ppn: usize, page_type: PageType) -> Self {
+    /// - root_pt_addr: 根页表的物理地址
+    pub fn new(root_pt_addr: usize, page_type: PageType) -> Self {
         Self {
-            root_ppn,
+            root_pt_addr,
             page_type,
         }
     }
@@ -319,8 +314,9 @@ impl VirtualPage {
         let vpn2 = va.vpn(2);
         let vpn1 = va.vpn(1);
 
-        let mut root_pt: PageTable = (self.root_ppn << 12).into();
-        let mut l2_pte = { root_pt.nth(vpn2) };
+        let root_pt: PageTable = (self.root_pt_addr).into();
+        let l2_pte = root_pt.nth_mut(vpn2);
+        //let mut l2_pte = { root_pt.nth(vpn2) };
 
         if !l2_pte.v() {
             let frame = frame_alloc
@@ -328,66 +324,67 @@ impl VirtualPage {
                 .ok_or(VirtualPageError::NotMoreFreeFrame)?;
             let l1_ppn = frame.ppn();
             l2_pte.set((l1_ppn << 10) | PTEFlags::V.bits() as usize);
-            root_pt.set_PTE(vpn2, l2_pte);
+            //root_pt.set_PTE(vpn2, l2_pte);
         }
 
-        let mut l1_table = l2_pte.next_page_table();
-        let mut l1_pte = l1_table.nth(vpn1);
+        let l1_table = l2_pte.next_page_table();
+        //let mut l1_pte = l1_table.nth(vpn1);
+        let l1_pte = l1_table.nth_mut(vpn1);
         // 在 2m 大页中，ppn[0] 必须为 0
         // 先右移21位，再左移19位，以让低10位为0
         l1_pte.set((pa.0 >> 21 << 19) | flags.bits() as usize);
-        l1_table.set_PTE(vpn1, l1_pte);
+        //l1_table.set_PTE(vpn1, l1_pte);
 
         Ok(())
     }
+    /*
+        /// 将一个 虚拟地址 映射到一个 物理地址
+        ///
+        /// 实际上就是在页表里添加页表项
+        pub fn map_small(
+            &mut self,
+            va: VirtualAddr,
+            pa: PysicalAddr,
+            flag: PTEFlags,
+            frame_alloc: &mut super::frame::FrameAllocator,
+        ) -> Result<(), VirtualPageError> {
+            if va.0 & 0xFFF != pa.0 & 0xFFF {
+                return Err(VirtualPageError::InvalidMap(va.0, pa.0));
+            }
+            // satp.ppn * 4096
+            let pt_addr = self.root_pt_addr;
+            let mut page_table: PageTable = pt_addr.into();
 
-    /// 将一个 虚拟地址 映射到一个 物理地址
-    ///
-    /// 实际上就是在页表里添加页表项
-    pub fn map_small(
-        &mut self,
-        va: VirtualAddr,
-        pa: PysicalAddr,
-        flag: PTEFlags,
-        frame_alloc: &mut super::frame::FrameAllocator,
-    ) -> Result<(), VirtualPageError> {
-        if va.0 & 0xFFF != pa.0 & 0xFFF {
-            return Err(VirtualPageError::InvalidMap(va.0, pa.0));
-        }
-        // satp.ppn * 4096
-        let pt_addr = self.root_ppn << 12;
-        let mut page_table: PageTable = pt_addr.into();
+            for i in (0..3).rev()
+            /* 2, 1, 0 */
+            {
+                let vpn = va.vpn(i);
+                let mut pte = page_table.nth(vpn);
 
-        for i in (0..3).rev()
-        /* 2, 1, 0 */
-        {
-            let vpn = va.vpn(i);
-            let mut pte = page_table.nth(vpn);
+                if !pte.is_valid() {
+                    let frame = frame_alloc
+                        .alloc()
+                        .ok_or(VirtualPageError::NotMoreFreeFrame)?;
+                    let pte_ppn: usize = (Into::<usize>::into(frame)) >> 12;
 
-            if !pte.is_valid() {
-                let frame = frame_alloc
-                    .alloc()
-                    .ok_or(VirtualPageError::NotMoreFreeFrame)?;
-                let pte_ppn: usize = (Into::<usize>::into(frame)) >> 12;
-
-                if i == 0 {
-                    // 叶子节点
-                    let pa: usize = pa.into();
-                    pte = PTE::new(pa >> 12, flag);
-                } else {
-                    // PTE 节点
-                    pte = PTE::new(pte_ppn, PTEFlags::PTE());
+                    if i == 0 {
+                        // 叶子节点
+                        let pa: usize = pa.into();
+                        pte = PTE::new(pa >> 12, flag);
+                    } else {
+                        // PTE 节点
+                        pte = PTE::new(pte_ppn, PTEFlags::PTE());
+                    }
+                    page_table.set_PTE(vpn, pte);
                 }
-                page_table.set_PTE(vpn, pte);
+
+                if i != 0 {
+                    page_table = pte.next_page_table();
+                }
             }
 
-            if i != 0 {
-                page_table = pte.next_page_table();
-            }
+            Ok(())
         }
-
-        Ok(())
-    }
-
+    */
     pub fn enable_stap(&self) {}
 }

@@ -17,7 +17,9 @@ _start:
 
   # 建立高半区映射
   # 将 0xFFFF_FFFF_8000_0000 映射到内核实际的物理地址 0x8000_0000
-  sd t1, 4080(t0)
+  li t3, 4080
+  add t3, t0, t3
+  sd t1, 0(t3)
 
   # 配置 satp 寄存器
   srli t2, t0, 12     # t2 = boot_page_table 的 PPN
@@ -29,7 +31,9 @@ _start:
 
   la sp, boot_stack_top
 
-  call main
+  # 跳往 rust 的 main 函数
+  la t0, main
+  jr t0
 
   j .
 

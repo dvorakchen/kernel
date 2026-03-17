@@ -1,7 +1,7 @@
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
 
-BASE_ADDRESS = 0x80200000;
+BASE_ADDRESS = 0xFFFFFFFF80200000;
 
 SECTIONS {
   . = BASE_ADDRESS;
@@ -37,7 +37,7 @@ SECTIONS {
 		*(.sbss .sbss.*)
 	}
 
-	. = ALIGN(2M);
+	. = ALIGN(4K);
 	ebss = .;
 	ekernel = .;
 	

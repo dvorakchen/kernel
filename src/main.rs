@@ -4,9 +4,9 @@
 global_asm!(include_str!("entry.asm"));
 
 #[unsafe(no_mangle)]
-pub extern "C" fn main(_hart_id: usize, dtb_pa: usize) {
+pub extern "C" fn main(_hart_id: usize, _dtb_pa: usize) {
     clear_bss();
-    clear_temp_pte();
+    // clear_temp_pte();
 
     // kernel::println!("dtb_pa: {:#x}", dtb_pa);
     // let kernel = Kernel::new(dtb_pa);
@@ -60,7 +60,6 @@ use core::{
     panic::PanicInfo,
     slice,
 };
-use kernel::Kernel;
 use riscv::register::time;
 use sbi_rt::{Timer, set_timer};
 

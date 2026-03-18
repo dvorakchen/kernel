@@ -68,7 +68,6 @@
 
 use bitflags::bitflags;
 
-use crate::utils;
 
 pub(crate) struct VirtualMemory {}
 

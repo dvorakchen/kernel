@@ -3,4 +3,5 @@
   target remote localhost:1234
   #break *0x80200000
   break main
+  layout src
   c

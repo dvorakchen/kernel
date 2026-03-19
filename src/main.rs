@@ -8,6 +8,7 @@ pub extern "C" fn main(_hart_id: usize, dtb_pa: usize) {
     clear_bss();
     set_base_page_table();
 
+    let dtb_pa = kernel::mm::phys_2_virt(dtb_pa);
     kernel::println!("dtb_pa: {:#x}", dtb_pa);
     let kernel = Kernel::new(dtb_pa);
     kernel.run();
@@ -66,14 +67,17 @@ use core::{
     slice,
 };
 use kernel::Kernel;
-use riscv::register::{satp, time};
+use riscv::{asm::wfi, register::time};
 use sbi_rt::{Timer, set_timer};
 
 #[panic_handler]
 fn panic(info: &PanicInfo<'_>) -> ! {
     if let Some(location) = info.location() {
+        kernel::println!("[ERROR OCURRED]: ");
         kernel::println!("{}", location.file());
         kernel::println!("{}", location.line());
     }
-    loop {}
+    loop {
+        wfi();
+    }
 }

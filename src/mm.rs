@@ -56,7 +56,6 @@ pub(crate) struct MemoryManager {
     device: crate::device::Memory,
     pub heap: crate::mm::heap::HeapAllocator,
     pub frame: crate::mm::frame::FrameAllocator,
-    vm: crate::mm::vm::VirtualPage,
 }
 
 impl MemoryManager {
@@ -66,41 +65,13 @@ impl MemoryManager {
 
         Self::device_mem_2_frame(&device, &mut frame);
 
-        // 内核页表
-        let mut vm = Self::kernel_virtual_page(&mut frame);
-
-        vm.map_kernel(
-            (crate::skernel as *const () as usize).into(),
-            (crate::ekernel as *const () as usize).into(),
-            &mut frame,
-        )
-        .expect("[MemoryManager] map kernel fail");
-
         let mm = Self {
             heap,
             device,
             frame,
-            vm,
         };
 
         mm
-    }
-
-    /// 初始化内核页表
-    ///
-    /// 内核使用恒等映射，映射为 2MB 大页
-    fn kernel_virtual_page(
-        frame_alloc: &mut mm::frame::FrameAllocator,
-    ) -> crate::mm::vm::VirtualPage {
-        let pt = frame_alloc
-            .alloc()
-            .expect("[MEMORY MANAGER] frame alloc failed");
-        crate::println!(
-            "[MEMORY MANAGER] alloc frame {:#x} for  kernel",
-            Into::<usize>::into(pt)
-        );
-
-        crate::mm::vm::VirtualPage::new(pt.into(), vm::PageType::Big)
     }
 
     /// 将空闲内存分配到帧分配器里
@@ -125,7 +96,7 @@ impl MemoryManager {
         );
         crate::println!("[MEMORY MANAGER] free memory size: {:#x}", size);
 
-        let page_count = size / PAGE_SIZE;
+        let page_count = size << 12;
         crate::println!("[MEMORY MANAGER] Memory start address: {:#x}", device.start);
         crate::println!("[MEMORY MANAGER] Memory end address: {:#x}", end);
         crate::println!("[MEMORY MANAGER] Memory size: {:#x}", device.size);
@@ -134,12 +105,5 @@ impl MemoryManager {
 
         frame_alloc.set_start(start);
         frame_alloc.add(0, size / frame::FRAME_SIZE);
-    }
-
-    /// 启用虚拟页表
-    pub fn enable_virtual_page(&mut self) {
-        // 内核空间为恒等映射
-
-        unimplemented!()
     }
 }

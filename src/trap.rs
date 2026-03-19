@@ -16,12 +16,13 @@ global_asm!(include_str!("trap/user_trap64.s"));
 /// S-mode 下的中断处理函数
 #[unsafe(no_mangle)]
 pub fn kernel_handle_trap(sepc: usize, scause: usize, stval: usize, sstatus: usize) {
-    crate::println!("sstatus: {:#x}", sstatus);
-    crate::println!("sepc: {:#x}", sepc);
-    crate::println!("scause: {:#x}", scause);
-    crate::println!("stval: {:#x}", stval);
-
-    crate::println!("time: {}", time::read());
+    let _ = sepc;
+    // crate::println!("sstatus: {:#x}", sstatus);
+    // crate::println!("sepc: {:#x}", sepc);
+    // crate::println!("scause: {:#x}", scause);
+    // crate::println!("stval: {:#x}", stval);
+    //
+    // crate::println!("time: {}", time::read());
     let stime_value = time::read64() + 10_000_000;
     sbi_rt::set_timer(stime_value);
 }
@@ -52,10 +53,10 @@ impl Trap {
             TrapMode::Direct,
         );
         unsafe { stvec::write(st) };
-        crate::println!(
-            "[TRAP] set kernel handler at {:#x}",
-            crate::kernel_trap_entry as *const () as usize
-        );
+        // crate::println!(
+        //     "[TRAP] set kernel handler at {:#x}",
+        //     crate::kernel_trap_entry as *const () as usize
+        // );
     }
 
     pub(crate) fn using_user_trap_handler() {

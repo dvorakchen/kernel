@@ -61,13 +61,12 @@
 //!
 //! ## 名词解释
 //!
-//! - ppn   物理页号 Pysical Page Number,
+//! - ppn   物理页号 Physical Page Number,
 //!         在 PET，va 中的 ppn 是截掉了低 12 位的，
 //!         所以在和 offset 组合成物理地址的时候要先左移动 12 位，在加上 offset
 //!         pv = (ppn << 12) + offset
 
 use bitflags::bitflags;
-
 
 pub(crate) struct VirtualMemory {}
 
@@ -196,16 +195,16 @@ impl From<VirtualAddr> for usize {
 /// 物理地址
 #[derive(Clone, Copy, Debug)]
 #[repr(transparent)]
-pub(crate) struct PysicalAddr(usize);
+pub(crate) struct PhysicalAddr(usize);
 
-impl From<usize> for PysicalAddr {
+impl From<usize> for PhysicalAddr {
     fn from(value: usize) -> Self {
         Self(value)
     }
 }
 
-impl From<PysicalAddr> for usize {
-    fn from(value: PysicalAddr) -> Self {
+impl From<PhysicalAddr> for usize {
+    fn from(value: PhysicalAddr) -> Self {
         value.0
     }
 }
@@ -274,8 +273,8 @@ impl VirtualPage {
     /// 调用者自行保证 2m 对齐
     pub(crate) fn map_kernel(
         &mut self,
-        pa_start: PysicalAddr,
-        pa_end: PysicalAddr,
+        pa_start: PhysicalAddr,
+        pa_end: PhysicalAddr,
         frame_alloc: &mut super::frame::FrameAllocator,
     ) -> Result<(), VirtualPageError> {
         const PAGE_SIZE_2M: usize = 0x20_0000;
@@ -293,7 +292,7 @@ impl VirtualPage {
         let mut cur = start_addr;
         while cur < end_addr {
             let va: VirtualAddr = cur.into();
-            let pa: PysicalAddr = cur.into();
+            let pa: PhysicalAddr = cur.into();
 
             self.map_2m_page(va, pa, flags, frame_alloc)?;
 
@@ -306,7 +305,7 @@ impl VirtualPage {
     fn map_2m_page(
         &self,
         va: VirtualAddr,
-        pa: PysicalAddr,
+        pa: PhysicalAddr,
         flags: PTEFlags,
         frame_alloc: &mut super::frame::FrameAllocator,
     ) -> Result<(), VirtualPageError> {
@@ -343,7 +342,7 @@ impl VirtualPage {
         pub fn map_small(
             &mut self,
             va: VirtualAddr,
-            pa: PysicalAddr,
+            pa: PhysicalAddr,
             flag: PTEFlags,
             frame_alloc: &mut super::frame::FrameAllocator,
         ) -> Result<(), VirtualPageError> {

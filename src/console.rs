@@ -6,7 +6,9 @@
 
 use core::fmt::{self, Write};
 
-const UART_BASE: usize = 0x1000_0000;
+use crate::mm::phys_2_virt;
+
+const UART_BASE: usize = phys_2_virt(0x1000_0000);
 const UART_RBR: *const u8 = (UART_BASE + 0x00) as *const u8;
 const UART_THR: *mut u8 = (UART_BASE + 0x00) as *mut u8; // Transmitter Holding Register（发送寄存器）
 const UART_LSR: *const u8 = (UART_BASE + 0x05) as *const u8; // Line Status Register（状态寄存器）

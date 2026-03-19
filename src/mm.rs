@@ -35,6 +35,17 @@ pub(crate) mod frame;
 pub(crate) mod heap;
 pub(crate) mod vm;
 
+pub const PA2VA_OFFSET: usize = 0xFFFF_FFFF_0000_0000;
+
+/// 将物理地址转为内核能通过页表访问的虚拟地址
+///
+/// 当开启了页表，内核在虚拟地址中被放到了高半区，
+/// 所以内核所有的地址都需要以高半区的虚拟地址来访问
+#[inline]
+pub const fn phys_2_virt(pa: usize) -> usize {
+    pa + PA2VA_OFFSET
+}
+
 /// 内存一页的大小
 pub(crate) const PAGE_SIZE: usize = 4096;
 

@@ -1,27 +1,16 @@
 # src/trap.s
 # RISC-V Trap Handler (U-mode -> S-mode)
 #
-#   1. 栈切换：用户栈 → 内核栈
+#   1. 没有栈切换
 #   2. 保存所有通用寄存器
 #   3. 调用 Rust 处理函数
 #   4. 恢复现场并返回
 
 
 .section .text.trap
-.global trap_entry
 .align 6
 
 kernel_trap_entry:
-
-  # 栈切换: 用户站 -> 内核栈
-  # 此时：
-  #   sp        =   用户栈指针
-  #   sscratch  =   内核栈指针
-  # 
-  # csrrw sp, sscratch, sp 执行后：
-  #   sp        =   内核栈顶
-  #   sscratch  =   原用户栈
-  //csrrw sp, sscratch, sp
 
   addi sp, sp, -32*8
 

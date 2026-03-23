@@ -29,6 +29,8 @@
 //!
 //! 开启页表
 
+use riscv::register::satp;
+
 use crate::mm;
 
 pub(crate) mod frame;
@@ -53,6 +55,7 @@ pub(crate) const PAGE_SIZE: usize = 4096;
 ///
 /// 包括管理 内核堆、物理页帧、虚拟内存
 pub(crate) struct MemoryManager {
+    satp: usize,
     device: crate::device::Memory,
     pub heap: crate::mm::heap::HeapAllocator,
     pub frame: crate::mm::frame::FrameAllocator,
@@ -65,11 +68,15 @@ impl MemoryManager {
 
         Self::device_mem_2_frame(&device, &mut frame);
 
+        let satp = satp::read().bits();
         let mm = Self {
+            satp,
             heap,
             device,
             frame,
         };
+
+        crate::println!("[MEMORY MANAGER] satp: {:#x}", satp);
 
         mm
     }

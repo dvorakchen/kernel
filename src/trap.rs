@@ -16,13 +16,16 @@ global_asm!(include_str!("trap/user_trap64.s"));
 /// S-mode 下的中断处理函数
 #[unsafe(no_mangle)]
 pub fn kernel_handle_trap(sepc: usize, scause: usize, stval: usize, sstatus: usize) {
-    let _ = sepc;
-    // crate::println!("sstatus: {:#x}", sstatus);
-    // crate::println!("sepc: {:#x}", sepc);
-    // crate::println!("scause: {:#x}", scause);
-    // crate::println!("stval: {:#x}", stval);
-    //
-    // crate::println!("time: {}", time::read());
+    crate::println!("sstatus: {:#x}", sstatus);
+    crate::println!("sepc: {:#x}", sepc);
+    crate::println!("scause: {:#x}", scause);
+    crate::println!("stval: {:#x}", stval);
+
+    crate::println!("time: {}", time::read());
+    let t = 0;
+    let addr = &t as *const _;
+    crate::println!("t addr: {:p}", addr);
+    crate::println!("");
     let stime_value = time::read64() + 10_000_000;
     sbi_rt::set_timer(stime_value);
 }
@@ -47,6 +50,7 @@ pub fn user_handle_trap(sepc: usize, scause: usize, stval: usize, sstatus: usize
 pub(crate) struct Trap;
 
 impl Trap {
+    /// 使用内核中断处理函数
     pub(crate) fn using_kernel_trap_handler() {
         let st = Stvec::new(
             crate::kernel_trap_entry as *const () as usize,

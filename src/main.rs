@@ -10,7 +10,7 @@ pub extern "C" fn main(_hart_id: usize, dtb_pa: usize) {
 
     let dtb_pa = kernel::mm::phys_2_virt(dtb_pa);
     kernel::println!("dtb_pa: {:#x}", dtb_pa);
-    let kernel = Kernel::new(dtb_pa);
+    let kernel = Kernel::new(dtb_pa).expect("[KERNEL] kernel error");
     kernel.run();
 }
 
@@ -45,35 +45,18 @@ fn set_base_page_table() {
     }
 }
 
-fn set_time_interrupt() {
-    if sbi_rt::probe_extension(Timer).is_unavailable() {
-        kernel::println!("[SBI] Timer Extension unavailable");
-        return;
-    }
-
-    //riscv::register::time;
-    let stime_value = time::read64() + 10_000_000;
-    set_timer(stime_value);
-    use riscv::register::{sie, sstatus};
-    unsafe {
-        sie::set_stimer();
-        sstatus::set_sie();
-    }
-}
-
 use core::{
     arch::{asm, global_asm},
     panic::PanicInfo,
     slice,
 };
 use kernel::Kernel;
-use riscv::{asm::wfi, register::time};
-use sbi_rt::{Timer, set_timer};
+use riscv::asm::wfi;
 
 #[panic_handler]
 fn panic(info: &PanicInfo<'_>) -> ! {
     if let Some(location) = info.location() {
-        kernel::println!("[ERROR OCURRED]: ");
+        kernel::println!("[PANIC OCURRED]: ");
         kernel::println!("{}", location.file());
         kernel::println!("{}", location.line());
     }

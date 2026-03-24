@@ -65,8 +65,8 @@ _start:
     /* 设置内核栈指针 (Stack Pointer) */
     la t0, boot_stack_top_vma
     /* 空出 8 字节，好“栈底藏尸” */
-    # addi t0, t0, -8
     ld sp, 0(t0)        # 加载栈顶的绝对虚拟地址
+    addi sp,sp, -16
 
     /* 执行绝对跳转，此时 PC (程序计数器) 将进入 0xFFFFFFFF8020... 范围 */
     jr t1

@@ -52,6 +52,16 @@ impl Kernel {
 
     /// 启动内核
     pub fn run(self) -> ! {
+        let kernel_addr = &self as *const Self as usize;
+        let stack_top = boot_stack_top as *mut u128;
+        unsafe {
+            *stack_top = kernel_addr as u128;
+        };
+
+        unsafe {
+            crate::println!("[KERNEL] kernel struct addr: {:#x}", *stack_top);
+        };
+
         crate::println!("[KERNEL] set time interrppt");
         self.set_time_interrupt();
         crate::println!("[KERNEL] running");

@@ -10,16 +10,33 @@ use riscv::register::{
     time,
 };
 
+use crate::Kernel;
+
 global_asm!(include_str!("trap/kernel_trap64.s"));
 global_asm!(include_str!("trap/user_trap64.s"));
 
 /// S-mode 下的中断处理函数
 #[unsafe(no_mangle)]
 pub fn kernel_handle_trap(sepc: usize, scause: usize, stval: usize, sstatus: usize) {
+    unsafe extern "C" {
+        fn boot_stack_top();
+    }
+
+    let stack_top_addr = boot_stack_top as *const () as usize;
+    let kernel_addr = unsafe {
+        let kernel_addr = *(stack_top_addr as *const u128);
+        crate::println!("[TRAP] kernel addr: {:#x}", kernel_addr);
+        kernel_addr
+    };
+    let kernel = unsafe { &*(kernel_addr as *const Kernel) };
+    let t = kernel.device_tree.cpu.timebase_freq;
+    crate::println!("[TRAP] cpu time_freq: {}", t);
+
     crate::println!("sstatus: {:#x}", sstatus);
     crate::println!("sepc: {:#x}", sepc);
     crate::println!("scause: {:#x}", scause);
     crate::println!("stval: {:#x}", stval);
+    crate::println!("boot_stack_top: {:#x}", stack_top_addr);
 
     crate::println!("time: {}", time::read());
     let t = 0;

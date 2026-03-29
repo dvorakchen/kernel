@@ -40,7 +40,7 @@ fn set_base_page_table() {
         // 建桥，映射 MMIO 外设区域
         // 虚拟地址 0xFFFF_FFFF_0000_0000
         // 物理地址 0x0000_0000
-        boot_page_table[508] = 0xC7;
+        boot_page_table[508] = 0xE7;
         asm!("SFENCE.VMA");
     }
 }

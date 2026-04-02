@@ -9,6 +9,7 @@ use riscv::register::{
     stvec::{self, Stvec, TrapMode},
     time,
 };
+use sbi_rt::set_timer;
 
 use crate::Kernel;
 
@@ -39,9 +40,6 @@ pub fn kernel_handle_trap(sepc: usize, scause: usize, stval: usize, sstatus: usi
     crate::println!("boot_stack_top: {:#x}", stack_top_addr);
 
     crate::println!("time: {}", time::read());
-    let t = 0;
-    let addr = &t as *const _;
-    crate::println!("t addr: {:p}", addr);
     crate::println!("");
     let stime_value = time::read64() + 10_000_000;
     sbi_rt::set_timer(stime_value);
@@ -90,5 +88,22 @@ impl Trap {
             "[TRAP] set user handler at {:#x}",
             crate::user_trap_entry as *const () as usize
         );
+    }
+
+    /// 设置时钟中断，每秒触发
+    pub(crate) fn set_time_interrupt(timebase_freq: u64) {
+        if sbi_rt::probe_extension(sbi_rt::Timer).is_unavailable() {
+            crate::println!("[SBI] Timer Extension unavailable");
+            return;
+        }
+
+        //riscv::register::time;
+        let stime_value = time::read64() + timebase_freq;
+        set_timer(stime_value);
+        use riscv::register::{sie, sstatus};
+        unsafe {
+            sie::set_stimer();
+            sstatus::set_sie();
+        }
     }
 }

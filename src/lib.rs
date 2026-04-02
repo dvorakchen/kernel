@@ -3,10 +3,9 @@
 extern crate alloc;
 
 use anyhow::Result;
-use riscv::{asm::wfi, register::time};
-use sbi_rt::{Timer, set_timer};
+use riscv::asm::wfi;
 
-use crate::{arch::Arch, device::DeviceTree, mm::MemoryManager};
+use crate::{arch::Arch, console::Stdin, device::DeviceTree, mm::MemoryManager, task::TaskManager};
 
 mod arch;
 pub mod console;
@@ -14,11 +13,12 @@ pub mod device;
 pub mod mm;
 mod regs;
 mod system;
+mod task;
 mod trap;
 mod utils;
 
 unsafe extern "C" {
-    fn skernel();
+    // fn skernel();
     fn ekernel();
     fn user_trap_entry();
     fn kernel_trap_entry();
@@ -30,6 +30,8 @@ pub struct Kernel {
     pub arch: Arch,
     pub device_tree: DeviceTree,
     pub(crate) mm: mm::MemoryManager,
+    pub(crate) stdin: Stdin,
+    pub(crate) task_manager: TaskManager,
 }
 
 impl Kernel {
@@ -47,6 +49,8 @@ impl Kernel {
             arch,
             mm: MemoryManager::new(dt.memory),
             device_tree: dt,
+            stdin: Stdin,
+            task_manager: TaskManager::new(),
         })
     }
 
@@ -62,8 +66,11 @@ impl Kernel {
             crate::println!("[KERNEL] kernel struct addr: {:#x}", *stack_top);
         };
 
-        crate::println!("[KERNEL] set time interrppt");
-        self.set_time_interrupt();
+        crate::println!(
+            "[KERNEL] set time interrppt, timebase_freq: {}",
+            self.device_tree.cpu.timebase_freq
+        );
+        trap::Trap::set_time_interrupt(self.device_tree.cpu.timebase_freq);
         crate::println!("[KERNEL] running");
 
         let sp = regs::read_sp();
@@ -71,23 +78,6 @@ impl Kernel {
 
         loop {
             wfi();
-        }
-    }
-
-    /// 设置时钟中断，每秒触发
-    fn set_time_interrupt(&self) {
-        if sbi_rt::probe_extension(Timer).is_unavailable() {
-            crate::println!("[SBI] Timer Extension unavailable");
-            return;
-        }
-
-        //riscv::register::time;
-        let stime_value = time::read64() + self.device_tree.cpu.timebase_freq;
-        set_timer(stime_value);
-        use riscv::register::{sie, sstatus};
-        unsafe {
-            sie::set_stimer();
-            sstatus::set_sie();
         }
     }
 }

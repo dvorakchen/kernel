@@ -64,7 +64,7 @@ _start:
     
     /* 设置内核栈指针 (Stack Pointer) */
     la t0, boot_stack_top_vma
-    /* 空出 8 字节，好“栈底藏尸” */
+    /* 空出 16 字节，好“栈底藏尸” */
     ld sp, 0(t0)        # 加载栈顶的绝对虚拟地址
     addi sp,sp, -16
 

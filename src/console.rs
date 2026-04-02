@@ -15,17 +15,18 @@ const UART_LSR: *const u8 = (UART_BASE + 0x05) as *const u8; // Line Status Regi
 const LSR_DATA_READY: u8 = 1 << 0;
 const LSR_TX_READY: u8 = 1 << 5; // bit 5 = 1 表示可以安全写入LSR_TX_READY: u8 = 1 << 5; // bit 5 = 1 表示可以安全写入
 
+/// Stdin
 pub struct Stdin;
 
 impl Stdin {
-    pub fn read() -> u8 {
+    pub(crate) fn read() -> u8 {
         while unsafe { core::ptr::read_volatile(UART_LSR) } & LSR_DATA_READY == 0 {
             core::hint::spin_loop();
         }
         // 从 RBR 读取（地址 0x00 的读操作）
         unsafe { core::ptr::read_volatile(UART_RBR) }
     }
-    pub fn read_line(buf: &mut [u8]) -> usize {
+    pub(crate) fn read_line(buf: &mut [u8]) -> usize {
         let mut i = 0;
 
         while i < buf.len() {
@@ -57,8 +58,6 @@ impl Stdin {
 pub struct Stdout;
 
 impl Stdout {
-    pub fn clean() {}
-
     pub fn write_char(c: char) {
         let mut buf = [0u8; 4];
         let bytes = c.encode_utf8(&mut buf).as_bytes();

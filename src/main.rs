@@ -56,7 +56,7 @@ use riscv::asm::wfi;
 #[panic_handler]
 fn panic(info: &PanicInfo<'_>) -> ! {
     if let Some(location) = info.location() {
-        kernel::println!("[PANIC OCURRED]: ");
+        kernel::println!("[KERNEL PANIC OCURRED]: ");
         kernel::println!("{}", location.file());
         kernel::println!("{}", location.line());
     }

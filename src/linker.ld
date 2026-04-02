@@ -67,10 +67,10 @@ SECTIONS {
         sbss = .;
         *(.bss .bss.*)
         *(.sbss .sbss.*)
+        . = ALIGN(4K);
         ebss = .;
 
         /* 在 .bss 的末尾预留内核栈空间 */
-        . = ALIGN(4K);
         *(.stack) 
     }
 

@@ -48,12 +48,18 @@ pub const fn phys_2_virt(pa: usize) -> usize {
     pa + PA2VA_OFFSET
 }
 
+#[inline]
+pub const fn virt_2_phys(va: usize) -> usize {
+    va - PA2VA_OFFSET
+}
+
 /// 内存一页的大小
 pub(crate) const PAGE_SIZE: usize = 4096;
 
 /// 内存管理
 ///
 /// 包括管理 内核堆、物理页帧、虚拟内存
+/// 这个管理的是物理内存地址，而不是虚拟内存地址
 pub(crate) struct MemoryManager {
     satp: usize,
     device: crate::device::Memory,
@@ -90,6 +96,7 @@ impl MemoryManager {
         frame_alloc: &mut mm::frame::FrameAllocator,
     ) {
         let start = crate::utils::align_top(crate::ekernel as *const () as usize, PAGE_SIZE);
+        let start = virt_2_phys(start);
         crate::println!(
             "[MEMORY MANAGER] free memory start address aligned: {:#x}",
             start

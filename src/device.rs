@@ -74,7 +74,7 @@ impl DeviceTree {
             .next()
             .expect("[DEVICE TREE] must has memory");
 
-        let start = crate::mm::phys_2_virt(m.starting_address as usize);
+        let start = m.starting_address as usize;
         let size = m.size.expect("[DEVICE TREE] memory must has size");
         crate::println!("[DEVICE TREE] Device Memory start address: {:#x}", start);
         crate::println!("[DEVICE TREE] Device Memory size: {:#x}", size);
@@ -86,6 +86,7 @@ impl DeviceTree {
 }
 
 /// 设备树上的内存信息
+/// 地址信息是物理地址
 #[derive(Clone, Copy)]
 pub struct Memory {
     /// 内存开始地址

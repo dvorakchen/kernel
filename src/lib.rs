@@ -2,6 +2,9 @@
 
 extern crate alloc;
 
+use core::hint::spin_loop;
+
+use alloc::string::String;
 use anyhow::Result;
 use riscv::asm::wfi;
 
@@ -76,8 +79,15 @@ impl Kernel {
         let sp = regs::read_sp();
         crate::println!("[KERNEL] register sp: {:#x}", sp);
 
+        // TODO: 运行第一个进程
+
         loop {
-            wfi();
+            crate::print!("\x1B[1D\x1B[1D\x1B[1D\x1B[1Dthis");
+            spin_loop();
         }
+
+        // loop {
+        //     wfi();
+        // }
     }
 }

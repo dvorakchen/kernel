@@ -7,6 +7,6 @@ pub(crate) struct TaskContext {
     ra: usize,
     /// 栈指针
     sp: usize,
-    /// s0 - s11 被调用者寄存器
-    s: [usize; 12],
+    /// 寄存器
+    s: [usize; 32],
 }

@@ -14,6 +14,8 @@ kernel_trap_entry:
 
   addi sp, sp, -32*8
 
+  # sd 指令 将寄存器的值存入内存
+  sd x0,  0*8(sp)
   sd x1,  1*8(sp)
   sd x3,  3*8(sp)
   sd x4,  4*8(sp)
@@ -45,20 +47,18 @@ kernel_trap_entry:
   sd x30, 30*8(sp)
   sd x31, 31*8(sp)
 
-  # 保存用户栈指针到 t0
-  //csrr t0, sscratch
+  # 保存进入中断前的原始栈指针到 x2 (sp) 槽位
+  addi t0, sp, 32*8
   sd t0, 2*8(sp)
 
-  # 读取关键 csr 传递给 Rust
-  csrr a0, sepc
-  csrr a1, scause
-  csrr a2, stval
-  csrr a3, sstatus
+  # 将当前栈指针（指向 TrapFrame）作为第一个参数传递给 a0
+  mv a0, sp
 
   # 调用 Rust 处理函数
-  #   fn handle_trap(sepc: usize, scause: usize, stval: usize, sstatus: usize)
+  #   fn kernel_handle_trap(trap_frame: TrapFrame)
   call kernel_handle_trap
 
+  # ld 指令 将内存的值存入寄存器
   ld x1,  1*8(sp)
   ld x3,  3*8(sp)
   ld x4,  4*8(sp)
@@ -88,15 +88,10 @@ kernel_trap_entry:
   ld x28, 28*8(sp)
   ld x29, 29*8(sp)
   ld x30, 30*8(sp)
-  ld x31, 31*8(sp)               
+  ld x31, 31*8(sp)
 
-  # 恢复 sscratch 用户栈指针
-  ld t0, 2*8(sp)
-  //csrw sscratch, t0
-  
-  # 释放栈帧
-  addi sp, sp, 32*8
+  # 从 TrapFrame 恢复原始栈指针 (x2)
+  # 这步操作会同时恢复 sp 的值并完成栈帧的释放
+  ld sp, 2*8(sp)
 
-  # 栈切换
-  //csrrw sp, sscratch, sp
   sret

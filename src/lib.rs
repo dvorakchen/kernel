@@ -82,12 +82,24 @@ impl Kernel {
         // TODO: 运行第一个进程
 
         loop {
-            crate::print!("\x1B[1D\x1B[1D\x1B[1D\x1B[1Dthis");
-            spin_loop();
+            pthis();
+            self.sleep();
         }
 
         // loop {
         //     wfi();
         // }
     }
+
+    fn sleep(&self) {
+        let start = riscv::register::time::read() as u64;
+        let end = start + self.device_tree.cpu.timebase_freq / 2;
+        while (riscv::register::time::read() as u64) < end {
+            core::hint::spin_loop();
+        }
+    }
+}
+
+fn pthis() {
+    crate::print!("\x1B[1D\x1B[1D\x1B[1D\x1B[1Dthis");
 }

@@ -68,7 +68,7 @@ pub fn kernel_handle_trap(trap_frame: TrapFrame) {
         crate::println!("[TRAP] kernel addr: {:#x}", kernel_addr);
         kernel_addr
     };
-    let kernel = unsafe { &*(kernel_addr as *const Kernel) };
+    let kernel = unsafe { &mut *(kernel_addr as *mut Kernel) };
 
     let scause = riscv::register::scause::read();
 
@@ -77,6 +77,7 @@ pub fn kernel_handle_trap(trap_frame: TrapFrame) {
             // supervisor timer
             0x05 => {
                 crate::println!("[TRAP HANDLER] Soft Interrupt occurred");
+                kernel.task_manager.schedule();
             }
             _ => {}
         }

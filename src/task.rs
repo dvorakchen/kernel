@@ -38,4 +38,34 @@ impl TaskManager {
             current_task: 0,
         }
     }
+
+    pub(crate) fn schedule(&mut self) {
+        if self.tasks.is_empty() {
+            return;
+        }
+
+        let current = self.current_task;
+
+        let next = (current + 1) % self.tasks.len();
+        if next != current {
+            if let Some(cur_task) = self.tasks.iter_mut().nth(self.current_task) {
+                cur_task.status = TaskStatus::Ready;
+            }
+
+            if let Some(next_task) = self.tasks.iter_mut().nth(next) {
+                next_task.status = TaskStatus::Running;
+            }
+
+            unsafe extern "C" {
+                fn __switch(old: *mut TaskContext, next: *const TaskContext);
+            }
+
+            unsafe {
+                let cur_task = &mut self.tasks[current].ctx as *mut TaskContext;
+                let next_task = &mut self.tasks[next].ctx as *mut TaskContext;
+                self.current_task = next;
+                __switch(cur_task, next_task);
+            }
+        }
+    }
 }

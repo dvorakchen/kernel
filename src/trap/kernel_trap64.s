@@ -5,6 +5,46 @@
 #   2. 保存所有通用寄存器
 #   3. 调用 Rust 处理函数
 #   4. 恢复现场并返回
+#
+#   ## 时钟中断
+#   当触发时钟中断的时候，应该是要切换进程的，如何触发呢
+#   
+#   1.  当进入 `kernel_trap_entry` 的时候，当前是任务 A
+#       将寄存器存入任务 A 的栈，将 TrapFrame 给 a0
+#       将 TrapFrame 作为第一个参数传递给 `kernel_handle_trap`
+#       注意此时的栈是**任务A**的栈
+#   2.  进入到 `kernel_handle_trap`
+#       通过 `schedule` 挑选好任务 B 后，
+#       使用 __switch 切换任务 A 和任务 B
+#
+#   ## __switch
+#   __switch(current_task: *mut TaskContext, next_task: *mut TaskContext)
+#
+#   在 RISC-V 中，__switch 通常用汇编实现，它的本质是：把当前 CPU
+  # 里的寄存器换成另一个任务预存好的寄存器。
+  #
+  # 1. 为什么只保存部分寄存器（ra, sp, s0-s11）？
+  #
+  #
+  # 在 RISC-V 调用约定中，寄存器分为两类：
+  #  * Caller-saved (调用者保存)：如 t0-t6, a0-a7。根据 Rust/C
+  #    编译器规则，如果函数里要用这些寄存器，编译器会在调用 __switch
+  #    之前就把它们压入栈中。
+  #  * Callee-saved (被调用者保存)：如
+  #    s0-s11。编译器假设函数调用后这些寄存器不变。
+  #  * ra (返回地址)：决定了函数执行完去哪。
+  #  * sp (栈指针)：决定了当前的栈在哪里。
+#   
+#   核心逻辑：由于 __switch 是被 schedule 函数调用的，编译器已经帮我们把 a 和 t
+  # 系列寄存器存在栈上了。我们只需要手动保存那些编译器不负责的 s
+  # 系列寄存器和最关键的 sp。
+  #
+  # 步骤:
+  #
+  # 1. 将 ra, sp, s0-s11 存入 current_task 的 TaskContext 中
+  # 2. 将 next_task 的 TaskContext 的 ra, sp, s0-s11 恢复到寄存器里
+  #
+  # 此时就完成了任务 A 和任务 B 的栈切换
 
 
 .section .text.trap

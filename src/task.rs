@@ -2,10 +2,12 @@
 //! 任务，表示进程
 
 pub(crate) mod context;
-
-use alloc::vec::Vec;
+use core::arch::global_asm;
 
 use crate::task::context::TaskContext;
+use alloc::vec::Vec;
+
+global_asm!(include_str!("task/switch.S"));
 
 /// 任务的状态
 pub(crate) enum TaskStatus {
